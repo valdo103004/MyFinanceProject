@@ -1,0 +1,17 @@
+{
+  "name": "myfinance",
+  "private": true,
+  "workspaces": ["apps/web", "apps/api", "packages/shared"],
+  "scripts": {
+    "dev": "npm run build -w @myfinance/shared && concurrently -k \"npm run dev -w @myfinance/api\" \"npm run dev -w @myfinance/web\"",
+    "build": "npm run build -w @myfinance/shared && npm run build -w @myfinance/api && npm run build -w @myfinance/web",
+    "db:up": "docker compose up -d mysql",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run prisma:migrate -w @myfinance/api",
+    "db:seed": "npm run prisma:seed -w @myfinance/api",
+    "db:studio": "npm run prisma:studio -w @myfinance/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
