@@ -50,3 +50,20 @@ describe('Unit Test Dashboard MyFinance', () => {
     expect(result.balance).toBe(65000);
   });
 });
+it('menghitung saldo negatif jika pengeluaran lebih besar', () => {
+  const result = calculateDashboard([
+    { Type: 'INCOME', Amount: 50000 },
+    { Type: 'EXPENSE', Amount: 100000 }
+  ]);
+
+  expect(result.balance).toBe(-50000);
+});
+
+it('menghitung saldo nol jika pemasukan sama dengan pengeluaran', () => {
+  const result = calculateDashboard([
+    { Type: 'INCOME', Amount: 100000 },
+    { Type: 'EXPENSE', Amount: 100000 }
+  ]);
+
+  expect(result.balance).toBe(0);
+});
