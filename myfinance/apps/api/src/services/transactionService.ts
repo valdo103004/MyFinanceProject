@@ -1,6 +1,13 @@
+
 import { Prisma } from '../lib/prisma.js';
-import type { Transaction, TransactionListResponse } from '@myfinance/shared';
-import { TransactionQuerySchema, TransactionSchema } from '../validators/transaction.js';
+import type {
+  Transaction,
+  TransactionListResponse
+} from '@myfinance/shared';
+import {
+  TransactionQuerySchema,
+  TransactionSchema
+} from '../validators/transaction.js';
 
 const transactionInclude = { Category: true } as const;
 
@@ -14,13 +21,40 @@ function mapTransaction(transaction: any): Transaction {
   };
 }
 
-export async function listTransactions(UserId: number, input: unknown): Promise<TransactionListResponse> {
+export async function listTransactions(
+  UserId: number,
+  input: unknown
+): Promise<TransactionListResponse> {
   const Query = TransactionQuerySchema.parse(input);
+
   const where: any = { UserId };
-  if (Query.Type) where.Type = Query.Type;
-  if (Query.CategoryId) where.CategoryId = Query.CategoryId;
+
+  if (Query.Type) {
+    where.Type = Query.Type;
+  }
+
+  if (Query.CategoryId) {
+    where.CategoryId = Query.CategoryId;
+  }
+
   if (Query.Month) {
-    const [year, month] = Query.Month.split('-').map(Number);
+    const [yearString, monthString] = Query.Month.split('-');
+
+    const year = Number(yearString);
+    const month = Number(monthString);
+
+    if (
+      !Number.isInteger(year) ||
+      !Number.isInteger(month) ||
+      year < 1 ||
+      month < 1 ||
+      month > 12
+    ) {
+      const error = new Error('Format bulan tidak valid.');
+      error.name = 'ValidationError';
+      throw error;
+    }
+
     where.TransactionDate = {
       gte: new Date(Date.UTC(year, month - 1, 1)),
       lt: new Date(Date.UTC(year, month, 1))
@@ -28,58 +62,123 @@ export async function listTransactions(UserId: number, input: unknown): Promise<
   }
 
   const [Data, Total] = await Promise.all([
-    Prisma.transaction.findMany({ where, include: transactionInclude, orderBy: [{ TransactionDate: 'desc' }, { Id: 'desc' }] }),
+    Prisma.transaction.findMany({
+      where,
+      include: transactionInclude,
+      orderBy: [
+        { TransactionDate: 'desc' },
+        { Id: 'desc' }
+      ]
+    }),
     Prisma.transaction.count({ where })
   ]);
-  return { Data: Data.map(mapTransaction), Total };
+
+  return {
+    Data: Data.map(mapTransaction),
+    Total
+  };
 }
 
-export async function getTransaction(UserId: number, Id: number): Promise<Transaction> {
-  const Result = await Prisma.transaction.findFirst({ where: { Id, UserId }, include: transactionInclude });
+export async function getTransaction(
+  UserId: number,
+  Id: number
+): Promise<Transaction> {
+  const Result = await Prisma.transaction.findFirst({
+    where: { Id, UserId },
+    include: transactionInclude
+  });
+
   if (!Result) {
     const error = new Error('Transaksi tidak ditemukan.');
     error.name = 'NotFoundError';
     throw error;
   }
+
   return mapTransaction(Result);
 }
 
-export async function createTransaction(UserId: number, input: unknown): Promise<Transaction> {
+export async function createTransaction(
+  UserId: number,
+  input: unknown
+): Promise<Transaction> {
   const Data = TransactionSchema.parse(input);
-  const Category = await Prisma.category.findUnique({ where: { Id: Data.CategoryId } });
+
+  const Category = await Prisma.category.findUnique({
+    where: { Id: Data.CategoryId }
+  });
+
   if (!Category || Category.Type !== Data.Type) {
-    const error = new Error('Kategori tidak sesuai dengan tipe transaksi.');
+    const error = new Error(
+      'Kategori tidak sesuai dengan tipe transaksi.'
+    );
     error.name = 'ValidationError';
     throw error;
   }
-  const Result = await Prisma.transaction.create({ data: { ...Data, UserId }, include: transactionInclude });
+
+  const Result = await Prisma.transaction.create({
+    data: {
+      ...Data,
+      UserId
+    },
+    include: transactionInclude
+  });
+
   return mapTransaction(Result);
 }
 
-export async function updateTransaction(UserId: number, Id: number, input: unknown): Promise<Transaction> {
+export async function updateTransaction(
+  UserId: number,
+  Id: number,
+  input: unknown
+): Promise<Transaction> {
   const Data = TransactionSchema.parse(input);
-  const Existing = await Prisma.transaction.findFirst({ where: { Id, UserId } });
+
+  const Existing = await Prisma.transaction.findFirst({
+    where: { Id, UserId }
+  });
+
   if (!Existing) {
     const error = new Error('Transaksi tidak ditemukan.');
     error.name = 'NotFoundError';
     throw error;
   }
-  const Category = await Prisma.category.findUnique({ where: { Id: Data.CategoryId } });
+
+  const Category = await Prisma.category.findUnique({
+    where: { Id: Data.CategoryId }
+  });
+
   if (!Category || Category.Type !== Data.Type) {
-    const error = new Error('Kategori tidak sesuai dengan tipe transaksi.');
+    const error = new Error(
+      'Kategori tidak sesuai dengan tipe transaksi.'
+    );
     error.name = 'ValidationError';
     throw error;
   }
-  const Result = await Prisma.transaction.update({ where: { Id }, data: Data, include: transactionInclude });
+
+  const Result = await Prisma.transaction.update({
+    where: { Id },
+    data: Data,
+    include: transactionInclude
+  });
+
   return mapTransaction(Result);
 }
 
-export async function deleteTransaction(UserId: number, Id: number) {
-  const Existing = await Prisma.transaction.findFirst({ where: { Id, UserId } });
+export async function deleteTransaction(
+  UserId: number,
+  Id: number
+) {
+  const Existing = await Prisma.transaction.findFirst({
+    where: { Id, UserId }
+  });
+
   if (!Existing) {
     const error = new Error('Transaksi tidak ditemukan.');
     error.name = 'NotFoundError';
     throw error;
   }
-  await Prisma.transaction.delete({ where: { Id } });
+
+  await Prisma.transaction.delete({
+    where: { Id }
+  });
 }
