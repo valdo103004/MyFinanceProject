@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@myfinance/shared": "workspace:*",
+    "@myfinance/shared": "*",
     "@vitejs/plugin-react": "^5.0.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
